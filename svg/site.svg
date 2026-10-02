@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Flash — svg/site.svg
+  Distribution wrapper: loads Flash through a single .svg via <foreignObject>,
+  so it can live on hosts that accept SVG but not HTML.
+
+  Works with zero configuration in this layout: the frame below points at
+  ../FlashNext.html relative to this file. If you upload ONLY this SVG
+  somewhere else, replace the iframe src with your absolute hosted URL.
+
+  NOTE: foreignObject content only executes scripts when the SVG is loaded as
+  a *document* (direct navigation, iframe, or object tag) — never as <img>.
+  That is a browser security rule, not a Flash limitation.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" width="1280" height="800" viewBox="0 0 1280 800">
+  <foreignObject x="0" y="0" width="1280" height="800">
+    <html:html>
+      <html:head><html:meta charset="utf-8"/><html:style>
+        html,body{margin:0;height:100%;background:#0a0f1c}
+        iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
+      </html:style></html:head>
+      <html:body>
+        <!-- Relative to this file in the repo layout. Replace with an absolute
+             URL only if you host this SVG apart from FlashNext.html. -->
+        <html:iframe src="../FlashNext.html" title="FlashNext"></html:iframe>
+      </html:body>
+    </html:html>
+  </foreignObject>
+</svg>

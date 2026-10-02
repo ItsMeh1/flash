@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlashNext</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230d1424'/%3E%3Cpath d='M13 2 3 14h9l-1 8 10-12h-9l1-8z' fill='%23a9dcff'/%3E%3C/svg%3E">
+<meta name="description" content="FlashNext — a fast, minimal browser interface.">
+<link rel="stylesheet" href="css/flash.css">
+</head>
+<body>
+<div id="app">
+  <!-- ══ Browser chrome ══ -->
+  <header id="chrome">
+    <div id="tabBar">
+      <div id="tabStrip" title="Drag to reorder • double-click to mute" data-i18n-title="tabStripHint"></div>
+    </div>
+    <div id="navRow">
+      <div class="nav-group">
+        <button id="btnApps" class="ibtn" title="Menu" data-i18n-title="menu"><i data-icon="grid"></i></button>
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-group">
+        <button id="btnBack" class="ibtn" title="Back" data-i18n-title="back"><i data-icon="back"></i></button>
+        <button id="btnFwd" class="ibtn" title="Forward" data-i18n-title="forward"><i data-icon="fwd"></i></button>
+        <button id="btnReload" class="ibtn" title="Reload" data-i18n-title="reload"><i data-icon="reload"></i></button>
+        <button id="btnHome" class="ibtn" title="Home" data-i18n-title="home"><i data-icon="home"></i></button>
+      </div>
+      <div id="omniWrap">
+        <span id="omniIcon"><i data-icon="lock" data-size="15"></i></span>
+        <input id="omnibox" placeholder="Search or enter URL…  (Enter to go)" data-i18n-ph="omniPh" autocomplete="off" spellcheck="false">
+        <!-- FEATURE:bookmarks:begin --><button id="btnStar" class="ibtn" title="Bookmark this page" data-i18n-title="bookmark"><i data-icon="star" data-size="16"></i></button><!-- FEATURE:bookmarks:end -->
+        <button id="btnGo" class="go-circle" title="Go" data-i18n-title="go"><i data-icon="arrowRight" data-size="17"></i></button>
+      </div>
+      <div id="suggestBox" hidden></div>
+      <div class="nav-group">
+        <button id="btnSettings" class="ibtn" title="Settings" data-i18n-title="settings"><i data-icon="settings"></i></button>
+        <!-- FEATURE:devtools:begin --><button id="btnCode" class="ibtn" title="Developer tools" data-i18n-title="devtools"><i data-icon="code"></i></button><!-- FEATURE:devtools:end -->
+        <!-- FEATURE:bolt:begin --><button id="btnAssistant" class="ibtn" title="AI Assistant" data-i18n-title="aiAssistant"><i data-icon="sparkles"></i></button><!-- FEATURE:bolt:end -->
+      </div>
+      <!-- FEATURE:adblock:begin --><button id="protectPill" class="protect-pill st-green" title="Protection" data-i18n-title="shields"><i data-icon="shield" data-size="16"></i></button><!-- FEATURE:adblock:end -->
+      <!-- FEATURE:adblock:begin -->
+<div id="protectMenu">
+        <div class="pm-title" data-i18n="shieldsT">Shields</div>
+        <div class="pm-count" id="pmCount"></div>
+        <label class="switch-row"><span><span class="t" data-i18n="adblockT">Ad blocker</span></span><span class="switch"><input type="checkbox" id="pmAdblock"><span class="tr"></span></span></label>
+        <label class="switch-row"><span><span class="t" data-i18n="cosmeticT">Cosmetic filtering</span></span><span class="switch"><input type="checkbox" id="pmCosmetic"><span class="tr"></span></span></label>
+        <label class="switch-row"><span><span class="t" data-i18n="webrtcT">WebRTC guard</span></span><span class="switch"><input type="checkbox" id="pmWebRTC"><span class="tr"></span></span></label>
+        <button class="btn small" id="pmSettings" data-i18n="fullSettings">Full settings</button>
+      </div>
+<!-- FEATURE:adblock:end -->
+      <div id="appsMenu">
+        <button class="item" id="mNewTab"><i data-icon="plus" data-size="15"></i><span data-i18n="mNewTab">New tab</span></button>
+        <button class="item" id="mDup"><i data-icon="copy" data-size="15"></i><span data-i18n="mDup">Duplicate tab</span></button>
+        <button class="item" id="mReopen"><i data-icon="rewind" data-size="15"></i><span data-i18n="mReopen">Reopen closed tab</span></button>
+        <button class="item" id="mHome"><i data-icon="home" data-size="15"></i><span data-i18n="mHome">Home</span></button>
+        <button class="item" id="mHist"><i data-icon="rewind" data-size="15"></i><span data-i18n="mHist">History</span></button>
+        <button class="item" id="mMute"><i data-icon="volume" data-size="15"></i><span>Mute tab</span></button>
+        <button class="item" id="mBar"><i data-icon="bookmark" data-size="15"></i><span>Bookmarks bar</span></button>
+        <button class="item" id="mCopy"><i data-icon="copy" data-size="15"></i><span data-i18n="mCopy">Copy URL</span></button>
+        <button class="item" id="mBlank"><i data-icon="popout" data-size="15"></i><span data-i18n="mBlank">Open in about:blank</span></button>
+        <button class="item" id="mSave"><i data-icon="download" data-size="15"></i><span data-i18n="mSave">Get single file</span></button>
+        <div class="sep"></div>
+        <button class="item danger" id="mReset"><i data-icon="trash" data-size="15"></i><span data-i18n="mReset">Full reset…</span></button>
+      </div>
+    </div>
+    <div id="loadbar"><span></span></div>
+    <div id="bookmarkBar"></div>
+  </header>
+
+  <!-- ══ Stage: iframes + internal pages per tab ══ -->
+  <div id="main">
+    <div id="stage"></div>
+    <div id="findBar" hidden>
+      <input id="findInput" placeholder="Find in page…" data-i18n-ph="findPh" autocomplete="off" spellcheck="false">
+      <span id="findCount"></span>
+      <button id="findPrev" class="ibtn" title="Previous" data-i18n-title="prev"><i data-icon="chevUp" data-size="15"></i></button>
+      <button id="findNext" class="ibtn" title="Next" data-i18n-title="next"><i data-icon="chevDown" data-size="15"></i></button>
+      <button id="findClose" class="ibtn" title="Close" data-i18n-title="closeBtn"><i data-icon="x" data-size="15"></i></button>
+    </div>
+    <!-- FEATURE:bolt:begin -->
+<aside class="sidepanel" id="assistantPanel">
+      <div class="panel-head"><span class="ph-title"><i data-icon="sparkles" data-size="15"></i><span data-i18n="aiAssistant">AI Assistant</span></span>
+        <button class="ibtn ph-x" id="assistantClose" title="Close" data-i18n-title="closeBtn"><i data-icon="x" data-size="15"></i></button></div>
+      <div id="chatLog"></div>
+      <div id="chatChips"></div>
+      <form id="chatForm" autocomplete="off">
+        <input id="chatInput" placeholder="Ask anything… try “open wikipedia”" data-i18n-ph="askPh" spellcheck="false">
+        <button type="submit" title="Send" data-i18n-title="send"><i data-icon="send" data-size="16"></i></button>
+      </form>
+    </aside>
+<!-- FEATURE:bolt:end -->
+    <!-- FEATURE:devtools:begin -->
+<aside class="sidepanel" id="diagPanel">
+      <div class="panel-head"><span class="ph-title"><i data-icon="activity" data-size="15"></i><span data-i18n="diagnostics">Diagnostics</span></span>
+        <button class="ibtn ph-x" id="diagClose" title="Close" data-i18n-title="closeBtn"><i data-icon="x" data-size="15"></i></button></div>
+      <div id="ptabs">
+        <button class="ptab on" data-pane="requests"><i data-icon="activity" data-size="14"></i><span data-i18n="requests">Requests</span> <span id="reqCount"></span></button>
+        <button class="ptab" data-pane="dom"><i data-icon="file" data-size="14"></i><span data-i18n="inspector">Inspector</span></button>
+        <button class="ptab" data-pane="metrics"><i data-icon="code" data-size="14"></i><span data-i18n="metrics">Metrics</span></button>
+      </div>
+      <div class="pane on" id="pane-requests">
+        <div class="pane-bar">
+          <input id="reqFilter" placeholder="Search requests…" data-i18n-ph="searchReqPh">
+          <button id="reqClear" class="btn small" title="Clear log" data-i18n-title="clear"><span data-i18n="clear">Clear</span></button>
+        </div>
+        <div id="reqLog"></div>
+      </div>
+      <div class="pane" id="pane-dom">
+        <div class="pane-bar">
+          <button id="btnPick" class="btn small primary"><span data-i18n="inspectEl">Inspect element</span></button>
+          <button id="btnInspect" class="btn small"><span data-i18n="snapshotDom">Snapshot DOM</span></button>
+        </div>
+        <div id="inspectResult"></div>
+        <pre id="domBox">(no snapshot yet)</pre>
+      </div>
+      <div class="pane" id="pane-metrics">
+        <div class="pane-bar"><span class="hint" data-i18n="liveStats">Live browser stats.</span></div>
+        <div id="metricsBox"></div>
+      </div>
+    </aside>
+<!-- FEATURE:devtools:end -->
+  </div>
+
+  <div id="toast"></div>
+  <div id="tutorialOverlay" hidden>
+    <div id="tutGlow"></div>
+    <div class="fav-dialog" id="tutCard" role="dialog" aria-label="Tutorial">
+      <h3 id="tutTitle">Welcome to FlashNext</h3>
+      <p class="hint tight" id="tutStep"></p>
+      <div class="tut-dots" id="tutDots"></div>
+      <div class="f-row fav-actions">
+        <button class="btn" id="tutBack">Back</button>
+        <button class="btn" id="tutSkip">Skip tour</button>
+        <button class="btn primary" id="tutNext">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/build-info.js"></script>
+<script src="js/injected-css.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/util.js"></script>
+<script src="js/store.js"></script>
+<script src="js/cookies.js"></script>
+<script src="js/log.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/sandbox.js"></script>
+<script src="js/render.js"></script>
+<script src="js/adblock.js"></script>
+<script src="js/bookmarks-history.js"></script>
+<script src="js/tabs.js"></script>
+<script src="js/viewers.js"></script>
+<script src="js/inspector.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/changelog.js"></script>
+<script src="js/internal.js"></script>
+<script src="js/yt.js"></script>
+<script src="js/assistant.js"></script>
+<script src="js/extensions.js"></script>
+<script src="js/suggest.js"></script>
+<script src="js/tutorial.js"></script>
+<script src="js/app.js"></script>
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    FlashIcons.apply(document);
+    FlashApp.boot();
+  });
+</script>
+</body>
+</html>
