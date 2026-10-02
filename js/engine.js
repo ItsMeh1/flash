@@ -90,16 +90,21 @@
     const bad = failedSet(host);
     if (!s.poolEnabled) return s.wispUrl;
     const pool = (s.poolList && s.poolList.length ? s.poolList : [s.wispUrl]).filter(
-      (u) => u && !bad.has(u)
+      (u) => u && !bad.has(u) && !relayBad(u)
     );
     if (!pool.length) return s.wispUrl;
     poolIndex = (poolIndex + 1) % pool.length;
     return pool[poolIndex];
   }
 
-  function markFailed(host, url) {
+  function markFailed(host, url, err) {
     try {
       failedSet(host).set(url, Date.now());
+    } catch {}
+    // Global health: transport failures demote the relay everywhere.
+    // HTTP statuses carry __status (the ORIGIN answered, relay is fine).
+    try {
+      if (!err || !err.__status) noteRelayFail(url);
     } catch {}
   }
 
@@ -108,6 +113,63 @@
       const set = failedForSite.get(host);
       if (set) set.delete(url);
     } catch {}
+    try { noteRelayOk(url); } catch {}
+  }
+
+  // Persistent relay health: flapping relays (fast handshake, corrupt or
+  // truncated stream) are demoted across sessions until they prove healthy
+  // again. Success forgives instantly; failures are forgotten after an hour.
+  const RELAY_HEALTH_MAX = 30;
+  const RELAY_FAIL_TTL_MS = 3600000;
+  const RELAY_FAIL_STRIKES = 2;
+  function relayHealth() { try { return global.FlashStore.get("relayHealth", {}) || {}; } catch { return {}; } }
+  function saveRelayHealth(h) { try { global.FlashStore.set("relayHealth", h); } catch {} }
+  function relayBad(url) {
+    let e = null;
+    try { e = relayHealth()[url]; } catch { return false; }
+    if (!e) return false;
+    if (Date.now() - (e.lastFail || 0) > RELAY_FAIL_TTL_MS) return false;
+    return (e.fail || 0) >= RELAY_FAIL_STRIKES;
+  }
+  function noteRelayFail(url) {
+    try {
+      const h = relayHealth();
+      const e = h[url] || { ok: 0, fail: 0, lastFail: 0 };
+      e.fail = (e.fail || 0) + 1;
+      e.lastFail = Date.now();
+      h[url] = e;
+      const keys = Object.keys(h);
+      if (keys.length > RELAY_HEALTH_MAX) {
+        keys.sort((a, b) => (h[a].lastFail || 0) - (h[b].lastFail || 0));
+        for (let i = 0; i < keys.length - RELAY_HEALTH_MAX; i++) delete h[keys[i]];
+      }
+      saveRelayHealth(h);
+    } catch {}
+  }
+  function noteRelayOk(url) {
+    try {
+      const h = relayHealth();
+      if (h[url]) { delete h[url]; saveRelayHealth(h); }
+    } catch {}
+  }
+
+  // Clean truncation: the relay closed the stream tidily mid-body (valid
+  // framing, no error surfaced). Only HTML navigations can be judged: tiny
+  // + bodyless + closeless is never a real page. Legit empty statuses pass.
+  function looksTruncated(out, kindCtx) {
+    try {
+      if (out && (out.status === 204 || out.status === 205 || out.status === 304)) return false;
+      const kind = (kindCtx && kindCtx.kind) || "";
+      if (kind !== "navigate" && kind !== "iframe") return false;
+      const body = (out && out.body) || new Uint8Array(0);
+      if (!body.length) return true;
+      if (body.length >= 2048) return false;
+      const ct = String((out.headers && out.headers["content-type"]) || "").split(";")[0].trim().toLowerCase();
+      if (ct && !/html/.test(ct)) return false;
+      let text = "";
+      try { text = new TextDecoder("utf-8", { fatal: false }).decode(body.slice(0, 2048)); } catch { return false; }
+      return !/<body[\s>]/i.test(text) && !/<\/html\s*>/i.test(text);
+    } catch { return false; }
   }
 
   function withSlash(u) {
@@ -559,6 +621,11 @@
       // 5xx with trigger on counts as a fallback-eligible failure, not success.
       if (out.status >= 500 && out.status <= 599 && shouldFallback(null, out.status) && (s.fallbackEnabled !== false) && s.fallbackUrl) {
         throw Object.assign(new Error("HTTP " + out.status + " (fallback trigger)"), { __status: out.status, __resp: out });
+      }
+      // Clean truncation (relay cut the stream, framing stayed valid):
+      // retry elsewhere instead of rendering a hollow page.
+      if (looksTruncated(out, kindCtx)) {
+        throw new Error("truncated response via relay (retrying elsewhere)");
       }
       return out;
     }
